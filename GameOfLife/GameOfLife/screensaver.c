@@ -5,12 +5,12 @@ BOOL running = TRUE;
 
 unsigned long int generation = 0;
 
-wchar_t* titleFormat = L"Game of Life | Generation: %ld";
-wchar_t title[256] = L"Game of Life | Generation: 0";
+wchar_t* titleFormat = L"Game of Life | Generation: %ld | Mode: %d | Borders: %d | Steps Per Second: %f";
+wchar_t title[256] = L"Game of Life | Generation: 0 | Mode: 0 | Borders: 0 | Steps Per Second: 0.05";
 
 int ButtonMessage = 0;
 
-int simulationMode = 0;
+int paused = 0;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, WPARAM lParam)
 {
@@ -33,6 +33,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, WPARAM lParam)
 			break;
 		case CYCLE_BTN:
 			ButtonMessage = 2;
+			break;
+		case BORDER_TOGGLE_BTN:
+			ButtonMessage = 3;
+			break;
+		case PAUSE_BTN:
+			paused = !paused;
+			break;
+		case SPEED_INCREASE_BTN:
+			if(STEPS_PER_SECOND > 0.0f)
+				STEPS_PER_SECOND -= 0.05f;
+			break;
+		case SPEED_DECREASE_BTN:
+			if(STEPS_PER_SECOND < 1.0f)
+				STEPS_PER_SECOND += 0.05f;
 			break;
 		}
 		return Result;
@@ -127,12 +141,16 @@ WindowDetails* DefineWindow(HINSTANCE hInstance, int nShowCmd)
 			0);
 
 		CreateWindowExW(0, L"BUTTON", L"Restart", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 0, adjustedRect.right + 12, 20, child, (HMENU)RESTART_BTN, 0, NULL);
-		CreateWindowExW(0, L"BUTTON", L"Cycle", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 20, adjustedRect.right + 12, 20, child, (HMENU)CYCLE_BTN, 0, NULL);
+		CreateWindowExW(0, L"BUTTON", L"Cycle Mode", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 20, adjustedRect.right + 12, 20, child, (HMENU)CYCLE_BTN, 0, NULL);
+		CreateWindowExW(0, L"BUTTON", L"Border Toggle", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 40, adjustedRect.right + 12, 20, child, (HMENU)BORDER_TOGGLE_BTN, 0, NULL);
+		CreateWindowExW(0, L"BUTTON", L"Pause/Resume", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 60, adjustedRect.right + 12, 20, child, (HMENU)PAUSE_BTN, 0, NULL);
+
+		CreateWindowExW(0, L"BUTTON", L"Faster", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 80, (adjustedRect.right + 12)/2, 20, child, (HMENU)SPEED_INCREASE_BTN, 0, NULL);
+		CreateWindowExW(0, L"BUTTON", L"Slower", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, (adjustedRect.right + 12) / 2, 80, (adjustedRect.right + 12)/2, 20, child, (HMENU)SPEED_DECREASE_BTN, 0, NULL);
+
 
 		ShowWindow(child, nShowCmd);
 	}
-
-
 
 	return details;
 }
@@ -146,18 +164,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	int columns = details->Width / CELL_SIZE + 2;
 
 	int* sim = createSimulationMatrix(rows, columns, BORDERS);
-	switch (simulationMode)
-	{
-	case 0:
-		life_PopulateSimulation(sim, rows, columns, 0.35);
-		break;
-	case 1:
-		imm_PopulateSimulation(sim, rows, columns, 0.35);
-		break;
-	case 2:
-		rbw_PopulateSimulation(sim, rows, columns, 0.35);
-		break;
-	}
+	populateSimulation(SIMULATION_MODE, sim, rows, columns, 0.35);
 	clock_t prevTime = clock();
 
 	while (running)
@@ -173,68 +180,35 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		case 1:
 			free(sim);
 			sim = createSimulationMatrix(rows, columns, BORDERS);
-			switch (simulationMode)
-			{
-			case 0:
-				life_PopulateSimulation(sim, rows, columns, 0.35);
-				break;
-			case 1:
-				imm_PopulateSimulation(sim, rows, columns, 0.35);
-				break;
-			case 2:
-				rbw_PopulateSimulation(sim, rows, columns, 0.35);
-				break;
-			}
+			populateSimulation(SIMULATION_MODE, sim, rows, columns, 0.35);
+			generation = 0;
 			break;
 		case 2:
-			simulationMode++;
-			if (simulationMode > 2)
-				simulationMode = 0;
+			SIMULATION_MODE++;
+			if (SIMULATION_MODE > 2)
+				SIMULATION_MODE = 0;
 
 			free(sim);
 			sim = createSimulationMatrix(rows, columns, BORDERS);
-			switch (simulationMode)
-			{
-			case 0:
-				life_PopulateSimulation(sim, rows, columns, 0.35);
-				break;
-			case 1:
-				imm_PopulateSimulation(sim, rows, columns, 0.35);
-				break;
-			case 2:
-				rbw_PopulateSimulation(sim, rows, columns, 0.35);
-				break;
-			}
+			populateSimulation(SIMULATION_MODE, sim, rows, columns, 0.35);
+
+			generation = 0;
+			break;
+		case 3:
+			BORDERS = !BORDERS;
 			break;
 		}
 		ButtonMessage = 0;
 
 		clock_t curTime = clock();
-		if (((double)(curTime - prevTime) / CLOCKS_PER_SEC) >= STEPS_PER_SECOND)
+		if (((double)(curTime - prevTime) / CLOCKS_PER_SEC) >= STEPS_PER_SECOND && !paused)
 		{
 			prevTime = curTime;
 			generation++;
-			swprintf_s(title, 256, titleFormat, generation);
+			swprintf_s(title, 256, titleFormat, generation, SIMULATION_MODE, BORDERS, STEPS_PER_SECOND);
 			SetWindowTextW(details->Window, title);
 
-			int* newSim = NULL;
-			switch (simulationMode)
-			{
-			case 0:
-				newSim = life_StepSimulation(rows, columns, BORDERS, sim);
-				life_ConvertSimulation(details->BackBuffer, details->Width, 0x002C4566, newSim, rows, columns, CELL_SIZE);
-				break;
-			case 1:
-				newSim = imm_StepSimulation(rows, columns, BORDERS, sim);
-				imm_ConvertSimulation(details->BackBuffer, details->Width, 0x002C4566, newSim, rows, columns, CELL_SIZE);
-				break;
-			case 2:
-				newSim = rbw_StepSimulation(rows, columns, BORDERS, sim);
-				rbw_ConvertSimulation(details->BackBuffer, details->Width, 0x002C4566, newSim, rows, columns, CELL_SIZE);
-				break;
-			}
-			if (newSim == NULL)
-				running = FALSE;
+			int* newSim = stepSimulation(SIMULATION_MODE, details->BackBuffer, details->Width, sim, rows, columns, BORDERS, CELL_SIZE);
 			sim = newSim;
 		}
 
