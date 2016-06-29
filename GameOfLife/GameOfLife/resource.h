@@ -1,0 +1,2 @@
+#define RESTART_BTN 100
+#define CYCLE_BTN 101
