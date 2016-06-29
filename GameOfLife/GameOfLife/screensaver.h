@@ -7,9 +7,7 @@
 #include "math_custom.h"
 #include "GlobalOptions.h"
 
-#include "life.h"
-#include "immigration_life.h"
-#include "rainbow_life.h"
+#include "life_generic.h"
 
 typedef struct tagWindowDetails
 {

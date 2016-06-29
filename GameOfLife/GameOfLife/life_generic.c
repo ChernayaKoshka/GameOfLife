@@ -60,3 +60,40 @@ int* createSimulationMatrix(int rows, int columns, int boundary)
 
 	return matrix;
 }
+
+void populateSimulation(int mode, int* matrix, int rows, int columns, double density)
+{
+	switch (mode)
+	{
+	case 0:
+		life_PopulateSimulation(matrix, rows, columns, 0.35);
+		break;
+	case 1:
+		imm_PopulateSimulation(matrix, rows, columns, 0.35);
+		break;
+	case 2:
+		rbw_PopulateSimulation(matrix, rows, columns, 0.35);
+		break;
+	}
+}
+
+int* stepSimulation(int mode, int* screen, int screenWidth, int* prevMatrix, int rows, int columns, int boundary, int cellSize)
+{
+	int* newSim = NULL;
+	switch (mode)
+	{
+	case 0:
+		newSim = life_StepSimulation(rows, columns, boundary, prevMatrix);
+		life_ConvertSimulation(screen, screenWidth, 0x002C4566, newSim, rows, columns, cellSize);
+		break;
+	case 1:
+		newSim = imm_StepSimulation(rows, columns, boundary, prevMatrix);
+		imm_ConvertSimulation(screen, screenWidth, 0x002C4566, newSim, rows, columns, cellSize);
+		break;
+	case 2:
+		newSim = rbw_StepSimulation(rows, columns, boundary, prevMatrix);
+		rbw_ConvertSimulation(screen, screenWidth, 0x002C4566, newSim, rows, columns, cellSize);
+		break;
+	}
+	return newSim;
+}
