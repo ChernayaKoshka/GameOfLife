@@ -46,7 +46,7 @@ void applyBorders(int rows, int columns, int* matrix)
 
 int* createSimulationMatrix(int rows, int columns, int boundary)
 {
-	int* matrix = malloc(rows*columns*sizeof(int));
+	int* matrix = malloc(rows*columns * sizeof(int));
 
 	if (matrix == NULL)
 		return NULL;
@@ -55,7 +55,7 @@ int* createSimulationMatrix(int rows, int columns, int boundary)
 		for (int x = 0; x < columns; x++)
 			matrix[y*columns + x] = 0;
 
-	if (boundary) 
+	if (boundary)
 		applyBorders(rows, columns, matrix);
 
 	return matrix;

@@ -47,7 +47,7 @@ int life_CountNeighborhood(int rows, int columns, int x, int y, int* matrix)
 
 int* life_StepSimulation(int rows, int columns, int boundary, int* prevMatrix)
 {
-	int* steppedMatrix = malloc(rows*columns*sizeof(int));
+	int* steppedMatrix = malloc(rows*columns * sizeof(int));
 
 	if (steppedMatrix == NULL)
 		return NULL;

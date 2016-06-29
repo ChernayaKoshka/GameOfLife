@@ -41,11 +41,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, WPARAM lParam)
 			paused = !paused;
 			break;
 		case SPEED_INCREASE_BTN:
-			if(STEPS_PER_SECOND > 0.0f)
+			if (STEPS_PER_SECOND > 0.0f)
 				STEPS_PER_SECOND -= 0.05f;
 			break;
 		case SPEED_DECREASE_BTN:
-			if(STEPS_PER_SECOND < 1.0f)
+			if (STEPS_PER_SECOND < 1.0f)
 				STEPS_PER_SECOND += 0.05f;
 			break;
 		}
@@ -145,9 +145,8 @@ WindowDetails* DefineWindow(HINSTANCE hInstance, int nShowCmd)
 		CreateWindowExW(0, L"BUTTON", L"Border Toggle", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 40, adjustedRect.right + 12, 20, child, (HMENU)BORDER_TOGGLE_BTN, 0, NULL);
 		CreateWindowExW(0, L"BUTTON", L"Pause/Resume", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 60, adjustedRect.right + 12, 20, child, (HMENU)PAUSE_BTN, 0, NULL);
 
-		CreateWindowExW(0, L"BUTTON", L"Faster", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 80, (adjustedRect.right + 12)/2, 20, child, (HMENU)SPEED_INCREASE_BTN, 0, NULL);
-		CreateWindowExW(0, L"BUTTON", L"Slower", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, (adjustedRect.right + 12) / 2, 80, (adjustedRect.right + 12)/2, 20, child, (HMENU)SPEED_DECREASE_BTN, 0, NULL);
-
+		CreateWindowExW(0, L"BUTTON", L"Faster", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 80, (adjustedRect.right + 12) / 2, 20, child, (HMENU)SPEED_INCREASE_BTN, 0, NULL);
+		CreateWindowExW(0, L"BUTTON", L"Slower", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, (adjustedRect.right + 12) / 2, 80, (adjustedRect.right + 12) / 2, 20, child, (HMENU)SPEED_DECREASE_BTN, 0, NULL);
 
 		ShowWindow(child, nShowCmd);
 	}

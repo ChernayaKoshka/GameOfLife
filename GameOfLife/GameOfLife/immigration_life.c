@@ -64,7 +64,7 @@ imm_Neighborhood imm_CountNeighborhood(int rows, int columns, int x, int y, int*
 
 int* imm_StepSimulation(int rows, int columns, int boundary, int* prevMatrix)
 {
-	int* steppedMatrix = malloc(rows*columns*sizeof(int));
+	int* steppedMatrix = malloc(rows*columns * sizeof(int));
 	if (steppedMatrix == NULL)
 		return NULL;
 
@@ -98,14 +98,14 @@ int* imm_StepSimulation(int rows, int columns, int boundary, int* prevMatrix)
 			}
 			else if ((live.Total == 2 || live.Total == 3) && cell != 0)
 			{
-				if(cell == 1)
+				if (cell == 1)
 					steppedMatrix[y*columns + x] = 1;
-				else if(cell == 2)
+				else if (cell == 2)
 					steppedMatrix[y*columns + x] = 2;
 			}
 			else if (live.Total == 3 && cell == 0)
 			{
-				if(live.Type1 > live.Type2)
+				if (live.Type1 > live.Type2)
 					steppedMatrix[y*columns + x] = 1;
 				else
 					steppedMatrix[y*columns + x] = 2;
