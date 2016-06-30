@@ -5,12 +5,36 @@ BOOL running = TRUE;
 
 unsigned long int generation = 0;
 
-wchar_t* titleFormat = L"Game of Life | Generation: %ld | Mode: %d | Borders: %d | Steps Per Second: %f";
-wchar_t title[256] = L"Game of Life | Generation: 0 | Mode: 0 | Borders: 0 | Steps Per Second: 0.05";
+wchar_t* titleFormat = L"Game of Life | Generation: %ld | Mode: %d | Borders: %d | Steps Per Second: %d";
+wchar_t title[256] = L"Game of Life | Generation: 0 | Mode: 0 | Borders: 0 | Steps Per Second: 20";
 
 int ButtonMessage = 0;
 
 int paused = 0;
+
+void fitWindow(int cellSize, int prevCellSize, WindowDetails* details)
+{
+	double scale = (double)gCellSize / prevCellSize;
+
+	gWindowHeight = (int)ceil(gWindowHeight*scale);
+	gWindowWidth = (int)ceil(gWindowWidth*scale);
+
+	details->Height = gWindowHeight;
+	details->Width = gWindowWidth;
+
+	details->BitMapInfo.bmiHeader.biWidth = gWindowWidth;
+	details->BitMapInfo.bmiHeader.biHeight = -gWindowHeight;
+
+	RECT adjustedRect = { 0 };
+	adjustedRect.bottom = gWindowHeight;
+	adjustedRect.right = gWindowWidth;
+	AdjustWindowRect(&adjustedRect, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_VISIBLE, FALSE);
+
+	SetWindowPos(details->Window, 0, 0, 0, Difference(adjustedRect.right, adjustedRect.left), Difference(adjustedRect.bottom, adjustedRect.top), SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+
+	free(details->BackBuffer);
+	details->BackBuffer = (int*)calloc(gWindowHeight*gWindowWidth, sizeof(int));
+}
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, WPARAM lParam)
 {
@@ -41,12 +65,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, WPARAM lParam)
 			paused = !paused;
 			break;
 		case SPEED_INCREASE_BTN:
-			if (STEPS_PER_SECOND > 0.0f)
-				STEPS_PER_SECOND -= 0.05f;
+			if (gStepsPerSecond > 0.0f)
+				gStepsPerSecond -= 0.05f;
 			break;
 		case SPEED_DECREASE_BTN:
-			if (STEPS_PER_SECOND < 1.0f)
-				STEPS_PER_SECOND += 0.05f;
+			if (gStepsPerSecond < 1.0f)
+				gStepsPerSecond += 0.05f;
+			break;
+		case RESIZE_UP_BTN:
+			gCellSize++;
+			break;
+		case RESIZE_DOWN_BTN:
+			if (gCellSize > 1)
+				gCellSize--;
 			break;
 		}
 		return Result;
@@ -61,8 +92,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, WPARAM lParam)
 WindowDetails* DefineWindow(HINSTANCE hInstance, int nShowCmd)
 {
 	WindowDetails* details = calloc(1, sizeof(WindowDetails));
-	details->Height = WINDOW_HEIGHT;
-	details->Width = WINDOW_WIDTH;
+	details->Height = gWindowHeight;
+	details->Width = gWindowWidth;
 
 	int bufferSize = details->Height*details->Width * sizeof(int);
 	details->BackBuffer = calloc(1, bufferSize); //4 = bytes to display RGB
@@ -88,8 +119,8 @@ WindowDetails* DefineWindow(HINSTANCE hInstance, int nShowCmd)
 		return NULL;
 
 	RECT adjustedRect = { 0 };
-	adjustedRect.bottom = WINDOW_HEIGHT;
-	adjustedRect.right = WINDOW_WIDTH;
+	adjustedRect.bottom = gWindowHeight;
+	adjustedRect.right = gWindowWidth;
 	AdjustWindowRect(&adjustedRect, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_VISIBLE, FALSE);
 
 	HWND hwndWindow = CreateWindowExW(
@@ -148,6 +179,9 @@ WindowDetails* DefineWindow(HINSTANCE hInstance, int nShowCmd)
 		CreateWindowExW(0, L"BUTTON", L"Faster", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 80, (adjustedRect.right + 12) / 2, 20, child, (HMENU)SPEED_INCREASE_BTN, 0, NULL);
 		CreateWindowExW(0, L"BUTTON", L"Slower", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, (adjustedRect.right + 12) / 2, 80, (adjustedRect.right + 12) / 2, 20, child, (HMENU)SPEED_DECREASE_BTN, 0, NULL);
 
+		CreateWindowExW(0, L"BUTTON", L"Size+", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 100, (adjustedRect.right + 12) / 2, 20, child, (HMENU)RESIZE_UP_BTN, 0, NULL);
+		CreateWindowExW(0, L"BUTTON", L"Size-", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, (adjustedRect.right + 12) / 2, 100, (adjustedRect.right + 12) / 2, 20, child, (HMENU)RESIZE_DOWN_BTN, 0, NULL);
+
 		ShowWindow(child, nShowCmd);
 	}
 
@@ -159,11 +193,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	WindowDetails* details = DefineWindow(hInstance, nShowCmd);
 	MSG msg;
 
-	int rows = details->Height / CELL_SIZE + 2;
-	int columns = details->Width / CELL_SIZE + 2;
+	int rows = details->Height / gCellSize + 2;
+	int columns = details->Width / gCellSize + 2;
+	int prevCellSize = gCellSize;
 
-	int* sim = createSimulationMatrix(rows, columns, BORDERS);
-	populateSimulation(SIMULATION_MODE, sim, rows, columns, 0.35);
+	int* sim = createSimulationMatrix(rows, columns, gBoundary);
+	populateSimulation(gSimulationMode, sim, rows, columns, 0.35);
 	clock_t prevTime = clock();
 
 	while (running)
@@ -174,48 +209,54 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			DispatchMessageW(&msg);
 		}
 
+		if (prevCellSize != gCellSize)
+		{
+			fitWindow(gCellSize, prevCellSize, details);
+			prevCellSize = gCellSize;
+		}
+
 		switch (ButtonMessage)
 		{
 		case 1:
 			free(sim);
-			sim = createSimulationMatrix(rows, columns, BORDERS);
-			populateSimulation(SIMULATION_MODE, sim, rows, columns, 0.35);
+			sim = createSimulationMatrix(rows, columns, gBoundary);
+			populateSimulation(gSimulationMode, sim, rows, columns, 0.35);
 			generation = 0;
 			break;
 		case 2:
-			SIMULATION_MODE++;
-			if (SIMULATION_MODE > 2)
-				SIMULATION_MODE = 0;
+			gSimulationMode++;
+			if (gSimulationMode > 2)
+				gSimulationMode = 0;
 
 			free(sim);
-			sim = createSimulationMatrix(rows, columns, BORDERS);
-			populateSimulation(SIMULATION_MODE, sim, rows, columns, 0.35);
+			sim = createSimulationMatrix(rows, columns, gBoundary);
+			populateSimulation(gSimulationMode, sim, rows, columns, 0.35);
 
 			generation = 0;
 			break;
 		case 3:
-			BORDERS = !BORDERS;
+			gBoundary = !gBoundary;
 			break;
 		}
 		ButtonMessage = 0;
 
 		clock_t curTime = clock();
-		if (((double)(curTime - prevTime) / CLOCKS_PER_SEC) >= STEPS_PER_SECOND && !paused)
+		if (((double)(curTime - prevTime) / CLOCKS_PER_SEC) >= gStepsPerSecond && !paused)
 		{
 			prevTime = curTime;
 			generation++;
-			swprintf_s(title, 256, titleFormat, generation, SIMULATION_MODE, BORDERS, STEPS_PER_SECOND);
+			swprintf_s(title, 256, titleFormat, generation, gSimulationMode, gBoundary, (int)(1 / gStepsPerSecond));
 			SetWindowTextW(details->Window, title);
 
-			int* newSim = stepSimulation(SIMULATION_MODE, details->BackBuffer, details->Width, sim, rows, columns, BORDERS, CELL_SIZE);
+			int* newSim = stepSimulation(gSimulationMode, details->BackBuffer, details->Width, sim, rows, columns, gBoundary, gCellSize);
 			sim = newSim;
-		}
 
-		StretchDIBits(details->DC,
-			0, 0, details->Width, details->Height,
-			0, 0, details->BitMapInfo.bmiHeader.biWidth, Abs(details->BitMapInfo.bmiHeader.biHeight),
-			details->BackBuffer, &details->BitMapInfo,
-			DIB_RGB_COLORS, SRCCOPY);
+			StretchDIBits(details->DC,
+				0, 0, details->Width, details->Height,
+				0, 0, details->BitMapInfo.bmiHeader.biWidth, Abs(details->BitMapInfo.bmiHeader.biHeight),
+				details->BackBuffer, &details->BitMapInfo,
+				DIB_RGB_COLORS, SRCCOPY);
+		}
 	}
 
 	ReleaseDC(NULL, details->DC);
